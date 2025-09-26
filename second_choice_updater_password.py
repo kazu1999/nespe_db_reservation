@@ -1,11 +1,12 @@
 """
-第二希望更新機能の専用ファイル
+第二希望更新機能の専用ファイル（認証あり版）
 ishokuフォルダー用に移植された第二希望更新処理
 """
 import sys
 import os
 
 # ローカルモジュールをインポート
+from user import authenticate_user
 from taio_record import insert_taio_record
 from utils import handle_db_exception
 from utils.db_utils import db_connection, DBUtils
@@ -16,13 +17,14 @@ class SecondChoiceUpdater:
     
     @staticmethod
     @db_connection
-    def update_second_choice(room_number: str, building_id: str, 
+    def update_second_choice(room_number: str, password: str, building_id: str, 
                            second_choice_text: str, connection=None) -> dict:
         """
         第二希望を更新する
         
         Args:
             room_number: 部屋番号
+            password: パスワード
             building_id: 物件ID
             second_choice_text: 第二希望のテキスト
             connection: データベース接続
@@ -31,24 +33,29 @@ class SecondChoiceUpdater:
             dict: 更新結果
         """
         try:
-            # 1. 現在の予約情報を取得
+            # 1. 認証チェック
+            auth_result = authenticate_user(room_number, password, building_id, connection)
+            if "error" in auth_result:
+                return {"error": "認証に失敗しました。部屋番号・パスワード・物件管理番号をご確認ください。"}
+            
+            # 2. 現在の予約情報を取得
             current_reservation = SecondChoiceUpdater._get_current_reservation(
                 room_number, building_id, connection)
             if "error" in current_reservation:
                 return current_reservation
             
-            # 2. 第二希望テキストの検証
+            # 3. 第二希望テキストの検証
             validation_result = SecondChoiceUpdater._validate_second_choice_text(second_choice_text)
             if "error" in validation_result:
                 return validation_result
             
-            # 3. 第二希望更新実行
+            # 4. 第二希望更新実行
             update_result = SecondChoiceUpdater._execute_second_choice_update(
                 room_number, building_id, second_choice_text, current_reservation["datetime"], connection)
             if "error" in update_result:
                 return update_result
             
-            # 4. 対応履歴登録
+            # 5. 対応履歴登録
             SecondChoiceUpdater._log_second_choice_update(
                 room_number, building_id, second_choice_text, connection)
             
@@ -156,12 +163,13 @@ class SecondChoiceUpdater:
     
     @staticmethod
     @db_connection
-    def get_current_second_choice(room_number: str, building_id: str, connection=None) -> dict:
+    def get_current_second_choice(room_number: str, password: str, building_id: str, connection=None) -> dict:
         """
         現在の第二希望を取得
         
         Args:
             room_number: 部屋番号
+            password: パスワード
             building_id: 物件ID
             connection: データベース接続
             
@@ -169,7 +177,12 @@ class SecondChoiceUpdater:
             dict: 現在の第二希望情報
         """
         try:
-            # 現在の予約情報を取得
+            # 1. 認証チェック
+            auth_result = authenticate_user(room_number, password, building_id, connection)
+            if "error" in auth_result:
+                return {"error": "認証に失敗しました。部屋番号・パスワード・物件管理番号をご確認ください。"}
+            
+            # 2. 現在の予約情報を取得
             current_reservation = SecondChoiceUpdater._get_current_reservation(
                 room_number, building_id, connection)
             if "error" in current_reservation:
@@ -187,12 +200,13 @@ class SecondChoiceUpdater:
     
     @staticmethod
     @db_connection
-    def clear_second_choice(room_number: str, building_id: str, connection=None) -> dict:
+    def clear_second_choice(room_number: str, password: str, building_id: str, connection=None) -> dict:
         """
         第二希望をクリアする
         
         Args:
             room_number: 部屋番号
+            password: パスワード
             building_id: 物件ID
             connection: データベース接続
             
@@ -200,13 +214,18 @@ class SecondChoiceUpdater:
             dict: クリア結果
         """
         try:
-            # 現在の予約情報を取得
+            # 1. 認証チェック
+            auth_result = authenticate_user(room_number, password, building_id, connection)
+            if "error" in auth_result:
+                return {"error": "認証に失敗しました。部屋番号・パスワード・物件管理番号をご確認ください。"}
+            
+            # 2. 現在の予約情報を取得
             current_reservation = SecondChoiceUpdater._get_current_reservation(
                 room_number, building_id, connection)
             if "error" in current_reservation:
                 return current_reservation
             
-            # 第二希望をクリア
+            # 3. 第二希望をクリア
             clear_sql = """
             UPDATE tReservationF 
             SET SecondChoice = NULL, Updated = NOW(), Updater = %s 
@@ -222,7 +241,7 @@ class SecondChoiceUpdater:
             if row_count == 0:
                 return {"error": "第二希望のクリアに失敗しました。予約情報が見つかりません。"}
             
-            # 対応履歴登録
+            # 4. 対応履歴登録
             SecondChoiceUpdater._log_second_choice_clear(room_number, building_id, connection)
             
             return {
@@ -254,13 +273,14 @@ class SecondChoiceUpdater:
     
     @staticmethod
     @db_connection
-    def get_second_choice_history(room_number: str, building_id: str, 
+    def get_second_choice_history(room_number: str, password: str, building_id: str, 
                                 limit: int = 10, connection=None) -> dict:
         """
         第二希望の変更履歴を取得
         
         Args:
             room_number: 部屋番号
+            password: パスワード
             building_id: 物件ID
             limit: 取得件数上限
             connection: データベース接続
@@ -269,7 +289,12 @@ class SecondChoiceUpdater:
             dict: 第二希望変更履歴
         """
         try:
-            # 対応履歴から第二希望関連の記録を取得
+            # 1. 認証チェック
+            auth_result = authenticate_user(room_number, password, building_id, connection)
+            if "error" in auth_result:
+                return {"error": "認証に失敗しました。部屋番号・パスワード・物件管理番号をご確認ください。"}
+            
+            # 2. 対応履歴から第二希望関連の記録を取得
             sql = """
             SELECT TaioNotes, Created, Category
             FROM tTaioF 
@@ -291,44 +316,44 @@ class SecondChoiceUpdater:
 
 
 # 便利関数（外部から直接呼び出し可能）
-def update_second_choice(room_number: str, building_id: str, 
+def update_second_choice(room_number: str, password: str, building_id: str, 
                         second_choice_text: str, connection=None) -> dict:
     """第二希望を更新（外部呼び出し用）"""
     updater = SecondChoiceUpdater()
-    return updater.update_second_choice(room_number, building_id, second_choice_text, connection)
+    return updater.update_second_choice(room_number, password, building_id, second_choice_text, connection)
 
 
-def get_current_second_choice(room_number: str, building_id: str, connection=None) -> dict:
+def get_current_second_choice(room_number: str, password: str, building_id: str, connection=None) -> dict:
     """現在の第二希望を取得（外部呼び出し用）"""
     updater = SecondChoiceUpdater()
-    return updater.get_current_second_choice(room_number, building_id, connection)
+    return updater.get_current_second_choice(room_number, password, building_id, connection)
 
 
-def clear_second_choice(room_number: str, building_id: str, connection=None) -> dict:
+def clear_second_choice(room_number: str, password: str, building_id: str, connection=None) -> dict:
     """第二希望をクリア（外部呼び出し用）"""
     updater = SecondChoiceUpdater()
-    return updater.clear_second_choice(room_number, building_id, connection)
+    return updater.clear_second_choice(room_number, password, building_id, connection)
 
 
-def get_second_choice_history(room_number: str, building_id: str, 
+def get_second_choice_history(room_number: str, password: str, building_id: str, 
                              limit: int = 10, connection=None) -> dict:
     """第二希望の変更履歴を取得（外部呼び出し用）"""
     updater = SecondChoiceUpdater()
-    return updater.get_second_choice_history(room_number, building_id, limit, connection)
+    return updater.get_second_choice_history(room_number, password, building_id, limit, connection)
 
 
 if __name__ == "__main__":
     # テスト用のサンプル実行
-    print("第二希望更新機能のテスト")
+    print("第二希望更新機能のテスト（認証あり版）")
     
     # 現在の第二希望を取得
-    current_result = get_current_second_choice("101", "12345")
+    current_result = get_current_second_choice("101", "password123", "12345")
     print(f"現在の第二希望: {current_result}")
     
     # 第二希望を更新
-    update_result = update_second_choice("101", "12345", "午前中希望、午後は不可")
+    update_result = update_second_choice("101", "password123", "12345", "午前中希望、午後は不可")
     print(f"第二希望更新結果: {update_result}")
     
     # 第二希望をクリア
-    clear_result = clear_second_choice("101", "12345")
+    clear_result = clear_second_choice("101", "password123", "12345")
     print(f"第二希望クリア結果: {clear_result}")

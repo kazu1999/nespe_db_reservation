@@ -1,5 +1,5 @@
 """
-予約日程取得機能の専用ファイル
+予約日程取得機能の専用ファイル（認証あり版）
 ishokuフォルダー用に移植された予約日程取得処理
 """
 import sys
@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timedelta
 
 # ローカルモジュールをインポート
+from user import authenticate_user
 from utils import handle_db_exception
 from utils.db_utils import db_connection, DBUtils
 
@@ -16,12 +17,13 @@ class ReservationFetcher:
     
     @staticmethod
     @db_connection
-    def get_reservation_date(room_number: str, building_id: str, connection=None) -> dict:
+    def get_reservation_date(room_number: str, password: str, building_id: str, connection=None) -> dict:
         """
         予約日程を取得する
         
         Args:
             room_number: 部屋番号
+            password: パスワード
             building_id: 物件ID
             connection: データベース接続
             
@@ -29,7 +31,12 @@ class ReservationFetcher:
             dict: 予約日程情報
         """
         try:
-            # 予約情報を取得
+            # 1. 認証チェック
+            auth_result = authenticate_user(room_number, password, building_id, connection)
+            if "error" in auth_result:
+                return {"error": "認証に失敗しました。部屋番号・パスワード・物件管理番号をご確認ください。"}
+            
+            # 2. 予約情報を取得
             reservation_info = ReservationFetcher._get_reservation_info(room_number, building_id, connection)
             if "error" in reservation_info:
                 return reservation_info
@@ -93,13 +100,14 @@ class ReservationFetcher:
     
     @staticmethod
     @db_connection
-    def get_reservation_history(room_number: str, building_id: str, 
+    def get_reservation_history(room_number: str, password: str, building_id: str, 
                                limit: int = 10, connection=None) -> dict:
         """
         予約履歴を取得する
         
         Args:
             room_number: 部屋番号
+            password: パスワード
             building_id: 物件ID
             limit: 取得件数上限
             connection: データベース接続
@@ -108,7 +116,12 @@ class ReservationFetcher:
             dict: 予約履歴情報
         """
         try:
-            # 予約履歴を取得
+            # 1. 認証チェック
+            auth_result = authenticate_user(room_number, password, building_id, connection)
+            if "error" in auth_result:
+                return {"error": "認証に失敗しました。部屋番号・パスワード・物件管理番号をご確認ください。"}
+            
+            # 2. 予約履歴を取得
             sql = """
             SELECT 
                 TimeFrom,
@@ -149,12 +162,13 @@ class ReservationFetcher:
     
     @staticmethod
     @db_connection
-    def get_reservation_status(room_number: str, building_id: str, connection=None) -> dict:
+    def get_reservation_status(room_number: str, password: str, building_id: str, connection=None) -> dict:
         """
         予約状況を取得する
         
         Args:
             room_number: 部屋番号
+            password: パスワード
             building_id: 物件ID
             connection: データベース接続
             
@@ -162,7 +176,12 @@ class ReservationFetcher:
             dict: 予約状況情報
         """
         try:
-            # 予約状況を取得
+            # 1. 認証チェック
+            auth_result = authenticate_user(room_number, password, building_id, connection)
+            if "error" in auth_result:
+                return {"error": "認証に失敗しました。部屋番号・パスワード・物件管理番号をご確認ください。"}
+            
+            # 2. 予約状況を取得
             sql = """
             SELECT 
                 COUNT(*) as total_reservations,
@@ -193,13 +212,14 @@ class ReservationFetcher:
     
     @staticmethod
     @db_connection
-    def get_upcoming_reservations(room_number: str, building_id: str, 
+    def get_upcoming_reservations(room_number: str, password: str, building_id: str, 
                                  days_ahead: int = 30, connection=None) -> dict:
         """
         今後の予約を取得する
         
         Args:
             room_number: 部屋番号
+            password: パスワード
             building_id: 物件ID
             days_ahead: 何日先まで取得するか
             connection: データベース接続
@@ -208,7 +228,12 @@ class ReservationFetcher:
             dict: 今後の予約情報
         """
         try:
-            # 今後の予約を取得
+            # 1. 認証チェック
+            auth_result = authenticate_user(room_number, password, building_id, connection)
+            if "error" in auth_result:
+                return {"error": "認証に失敗しました。部屋番号・パスワード・物件管理番号をご確認ください。"}
+            
+            # 2. 今後の予約を取得
             now = datetime.now()
             future_date = now + timedelta(days=days_ahead)
             
@@ -253,12 +278,13 @@ class ReservationFetcher:
     
     @staticmethod
     @db_connection
-    def get_reservation_summary(room_number: str, building_id: str, connection=None) -> dict:
+    def get_reservation_summary(room_number: str, password: str, building_id: str, connection=None) -> dict:
         """
         予約サマリーを取得する（現在の予約 + 状況 + 今後の予約）
         
         Args:
             room_number: 部屋番号
+            password: パスワード
             building_id: 物件ID
             connection: データベース接続
             
@@ -267,17 +293,17 @@ class ReservationFetcher:
         """
         try:
             # 1. 現在の予約を取得
-            current_reservation = ReservationFetcher.get_reservation_date(room_number, building_id, connection)
+            current_reservation = ReservationFetcher.get_reservation_date(room_number, password, building_id, connection)
             if "error" in current_reservation:
                 return current_reservation
             
             # 2. 予約状況を取得
-            status_info = ReservationFetcher.get_reservation_status(room_number, building_id, connection)
+            status_info = ReservationFetcher.get_reservation_status(room_number, password, building_id, connection)
             if "error" in status_info:
                 return status_info
             
             # 3. 今後の予約を取得
-            upcoming_reservations = ReservationFetcher.get_upcoming_reservations(room_number, building_id, connection)
+            upcoming_reservations = ReservationFetcher.get_upcoming_reservations(room_number, password, building_id, connection)
             if "error" in upcoming_reservations:
                 return upcoming_reservations
             
@@ -298,54 +324,54 @@ class ReservationFetcher:
 
 
 # 便利関数（外部から直接呼び出し可能）
-def get_reservation_date(room_number: str, building_id: str, connection=None) -> dict:
+def get_reservation_date(room_number: str, password: str, building_id: str, connection=None) -> dict:
     """予約日程を取得（外部呼び出し用）"""
     fetcher = ReservationFetcher()
-    return fetcher.get_reservation_date(room_number, building_id, connection)
+    return fetcher.get_reservation_date(room_number, password, building_id, connection)
 
 
-def get_reservation_history(room_number: str, building_id: str, 
+def get_reservation_history(room_number: str, password: str, building_id: str, 
                           limit: int = 10, connection=None) -> dict:
     """予約履歴を取得（外部呼び出し用）"""
     fetcher = ReservationFetcher()
-    return fetcher.get_reservation_history(room_number, building_id, limit, connection)
+    return fetcher.get_reservation_history(room_number, password, building_id, limit, connection)
 
 
-def get_reservation_status(room_number: str, building_id: str, connection=None) -> dict:
+def get_reservation_status(room_number: str, password: str, building_id: str, connection=None) -> dict:
     """予約状況を取得（外部呼び出し用）"""
     fetcher = ReservationFetcher()
-    return fetcher.get_reservation_status(room_number, building_id, connection)
+    return fetcher.get_reservation_status(room_number, password, building_id, connection)
 
 
-def get_upcoming_reservations(room_number: str, building_id: str, 
+def get_upcoming_reservations(room_number: str, password: str, building_id: str, 
                              days_ahead: int = 30, connection=None) -> dict:
     """今後の予約を取得（外部呼び出し用）"""
     fetcher = ReservationFetcher()
-    return fetcher.get_upcoming_reservations(room_number, building_id, days_ahead, connection)
+    return fetcher.get_upcoming_reservations(room_number, password, building_id, days_ahead, connection)
 
 
-def get_reservation_summary(room_number: str, building_id: str, connection=None) -> dict:
+def get_reservation_summary(room_number: str, password: str, building_id: str, connection=None) -> dict:
     """予約サマリーを取得（外部呼び出し用）"""
     fetcher = ReservationFetcher()
-    return fetcher.get_reservation_summary(room_number, building_id, connection)
+    return fetcher.get_reservation_summary(room_number, password, building_id, connection)
 
 
 if __name__ == "__main__":
     # テスト用のサンプル実行
-    print("予約日程取得機能のテスト")
+    print("予約日程取得機能のテスト（認証あり版）")
     
     # 予約日程を取得
-    date_result = get_reservation_date("101", "12345")
+    date_result = get_reservation_date("101", "password123", "12345")
     print(f"予約日程: {date_result}")
     
     # 予約状況を取得
-    status_result = get_reservation_status("101", "12345")
+    status_result = get_reservation_status("101", "password123", "12345")
     print(f"予約状況: {status_result}")
     
     # 今後の予約を取得
-    upcoming_result = get_upcoming_reservations("101", "12345", days_ahead=7)
+    upcoming_result = get_upcoming_reservations("101", "password123", "12345", days_ahead=7)
     print(f"今後の予約: {upcoming_result}")
     
     # 予約サマリーを取得
-    summary_result = get_reservation_summary("101", "12345")
+    summary_result = get_reservation_summary("101", "password123", "12345")
     print(f"予約サマリー: {summary_result}")

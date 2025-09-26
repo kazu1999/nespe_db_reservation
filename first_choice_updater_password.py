@@ -1,5 +1,5 @@
 """
-第一希望更新機能の専用ファイル
+第一希望更新機能の専用ファイル（認証あり版）
 ishokuフォルダー用に移植された第一希望更新処理
 """
 import sys
@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timedelta
 
 # ローカルモジュールをインポート
+from user import authenticate_user
 from taio_record import insert_taio_record
 from utils import handle_db_exception
 from utils.pattern_utils import PatternUtils
@@ -19,13 +20,14 @@ class FirstChoiceUpdater:
     
     @staticmethod
     @db_connection
-    def update_first_choice(room_number: str, building_id: str, 
+    def update_first_choice(room_number: str, password: str, building_id: str, 
                            new_datetime: str, connection=None) -> dict:
         """
         第一希望の日時を更新する
         
         Args:
             room_number: 部屋番号
+            password: パスワード
             building_id: 物件ID
             new_datetime: 新しい日時（YYYY-MM-DD HH:MM形式）
             connection: データベース接続
@@ -34,31 +36,36 @@ class FirstChoiceUpdater:
             dict: 更新結果
         """
         try:
-            # 1. 現在の予約情報を取得
+            # 1. 認証チェック
+            auth_result = authenticate_user(room_number, password, building_id, connection)
+            if "error" in auth_result:
+                return {"error": "認証に失敗しました。部屋番号・パスワード・物件管理番号をご確認ください。"}
+            
+            # 2. 現在の予約情報を取得
             current_reservation = FirstChoiceUpdater._get_current_reservation(
                 room_number, building_id, connection)
             if "error" in current_reservation:
                 return current_reservation
             
-            # 2. 新しい日時の検証
+            # 3. 新しい日時の検証
             validation_result = FirstChoiceUpdater._validate_new_datetime(
                 new_datetime, building_id, connection)
             if "error" in validation_result:
                 return validation_result
             
-            # 3. 空き枠チェック
+            # 4. 空き枠チェック
             availability_result = FirstChoiceUpdater._check_availability(
                 building_id, new_datetime, connection)
             if "error" in availability_result:
                 return availability_result
             
-            # 4. 第一希望更新実行
+            # 5. 第一希望更新実行
             update_result = FirstChoiceUpdater._execute_first_choice_update(
                 room_number, building_id, new_datetime, current_reservation["datetime"], connection)
             if "error" in update_result:
                 return update_result
             
-            # 5. 対応履歴登録
+            # 6. 対応履歴登録
             FirstChoiceUpdater._log_first_choice_update(
                 room_number, building_id, new_datetime, connection)
             
@@ -239,11 +246,11 @@ class FirstChoiceUpdater:
 
 
 # 便利関数（外部から直接呼び出し可能）
-def update_first_choice(room_number: str, building_id: str, 
+def update_first_choice(room_number: str, password: str, building_id: str, 
                        new_datetime: str, connection=None) -> dict:
     """第一希望の日時を更新（外部呼び出し用）"""
     updater = FirstChoiceUpdater()
-    return updater.update_first_choice(room_number, building_id, new_datetime, connection)
+    return updater.update_first_choice(room_number, password, building_id, new_datetime, connection)
 
 
 def get_available_slots(building_id: str, date: str, connection=None) -> dict:
@@ -254,12 +261,12 @@ def get_available_slots(building_id: str, date: str, connection=None) -> dict:
 
 if __name__ == "__main__":
     # テスト用のサンプル実行
-    print("第一希望更新機能のテスト")
+    print("第一希望更新機能のテスト（認証あり版）")
     
     # 利用可能な時間枠を取得
     slots_result = get_available_slots("12345", "2024-01-15")
     print(f"時間枠取得結果: {slots_result}")
     
     # 第一希望を更新
-    update_result = update_first_choice("101", "12345", "2024-01-15 10:00")
+    update_result = update_first_choice("101", "password123", "12345", "2024-01-15 10:00")
     print(f"第一希望更新結果: {update_result}")
