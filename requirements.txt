@@ -1,0 +1,53 @@
+# ishokuフォルダー実行に必要なライブラリ
+# ==========================================
+
+# 必須ライブラリ
+# --------------
+# データベース接続（MySQL）
+pymysql>=1.0.2
+
+# 環境変数管理
+python-dotenv>=1.0.0
+
+# オプションライブラリ
+# -------------------
+# データベース接続プール（パフォーマンス向上用）
+DBUtils>=3.0.0
+
+# 設定ファイル管理（設定の外部化用）
+configparser>=5.0.0
+
+# 開発・テスト用ライブラリ
+# ----------------------
+# テストフレームワーク
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# デバッグ用ライブラリ
+ipdb>=0.13.0
+
+# コード品質チェック
+flake8>=6.0.0
+black>=23.0.0
+
+# 標準ライブラリ（記載不要）
+# --------------------------
+# datetime, timedelta, os, sys, json, logging, re, math, string, pathlib, typing
+
+# インストール方法
+# ================
+# 1. 基本インストール（必須ライブラリのみ）
+#    pip install -r requirements.txt
+#
+# 2. 開発環境用インストール（テスト・デバッグ用含む）
+#    pip install -r requirements.txt --upgrade
+#
+# 3. 特定のライブラリのみインストール
+#    pip install pymysql python-dotenv
+#
+# 4. 仮想環境でのインストール（推奨）
+#    python -m venv ishoku_env
+#    source ishoku_env/bin/activate  # Linux/Mac
+#    # または
+#    ishoku_env\Scripts\activate     # Windows
+#    pip install -r requirements.txt
