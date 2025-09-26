@@ -61,7 +61,7 @@ def test_connection():
     try:
         # chatbot_dbデータベースへの接続テスト
         print("\n2. chatbot_dbデータベースへの接続テスト...")
-        conn = get_connection('chatbot_db')
+        conn = get_connection()
         print("✅ chatbot_dbデータベース接続成功")
         
         # 基本的なクエリテスト
