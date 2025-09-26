@@ -122,11 +122,6 @@ def show_connection_info():
     接続設定情報を表示
     """
     print("=== 接続設定情報 ===")
-    print(f"デフォルトDB: skoji_77")
-    print(f"ホスト: 192.168.98.42")
-    print(f"ユーザー: root")
-    print(f"パスワード: 2wsx#EDC")
-    print(f"文字セット: utf8")
     print()
 
 
