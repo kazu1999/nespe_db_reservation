@@ -14,7 +14,7 @@
 ### 主要機能
 - 予約の第一希望日時を更新
 - 利用可能な時間枠の取得
-- 日時検証と空き枠チェック
+- 日時検証・営業時間チェック・空き枠チェック
 
 ### 処理フロー
 
@@ -34,8 +34,9 @@
 
 3. 空き枠チェック
    ├── _check_availability() を呼び出し
-   ├── パターン情報の取得
-   └── 指定日時の空き枠確認
+   ├── パターン情報の取得（PatternUtils.get_pattern_info）
+   ├── 営業時間設定の考慮（tSettingM.BusinessStartTime/EndTime 等）
+   └── SlotAvailabilityChecker による枠・スタイリスト枠の空き確認
 
 4. 第一希望更新実行
    ├── _execute_first_choice_update() を呼び出し
@@ -90,10 +91,15 @@
    ├── PatternUtils を使用
    └── 物件IDに基づくパターン設定を取得
 
-2. 時間枠生成
+2. 営業時間取得
+   ├── _get_business_hours() を呼び出し
+   └── tSettingM から平日/土曜/日曜の営業時間と営業曜日を取得
+
+3. 時間枠生成
    ├── _generate_time_slots() を呼び出し
-   ├── 基本的な時間枠を生成（9:00-17:00の1時間刻み）
-   └── 実際の実装ではパターン情報に基づいて生成
+   ├── パターン情報（start_times/end_times）に基づき生成
+   ├── 営業時間外の枠は除外
+   └── SlotAvailabilityChecker とスタイリスト空き情報を付与
 ```
 
 ### データベース操作
@@ -102,6 +108,8 @@
 - **tReservationF**: 予約情報の更新
 - **tTaioF**: 対応履歴の記録
 - **tUserM**: ユーザー認証
+- **tSettingM**: 営業時間・枠上限（WakuRange）などの設定
+- **tStylistM**: スタイリスト同時枠数（NumberOfLines）等
 
 #### 主要SQL
 ```sql
@@ -115,6 +123,19 @@ ORDER BY TimeFrom DESC LIMIT 1
 UPDATE tReservationF 
 SET TimeFrom = %s, Updated = NOW(), Updater = %s 
 WHERE TimeFrom = %s AND UserCD = %s AND ClientCD = %s
+
+-- 営業時間設定取得
+SELECT BusinessStartTime, BusinessEndTime, SaturdayStartTime, SaturdayEndTime, SundayStartTime, SundayEndTime, BusinessWeekdays
+FROM tSettingM WHERE ClientCD = %s
+
+-- 枠上限（WakuRange）取得
+SELECT WakuRange FROM tSettingM WHERE ClientCD = %s
+
+-- 指定時刻の予約数
+SELECT COUNT(*) AS cnt FROM tReservationF WHERE MukouFlg = 0 AND Status = 1 AND ClientCD = %s AND DATE_FORMAT(TimeFrom, '%Y-%m-%d %H:%i') = %s
+
+-- 指定時刻・スタイリストの予約数
+SELECT COUNT(*) AS cnt FROM tReservationF WHERE MukouFlg = 0 AND Status = 1 AND ClientCD = %s AND DATE_FORMAT(TimeFrom, '%Y-%m-%d %H:%i') = %s AND StylistCD = %s
 ```
 
 ### エラーハンドリング
@@ -518,6 +539,7 @@ WHERE UserCD = %s AND ClientCD = %s AND MukouFlg = 0
    ├── デコレータ（@db_connection）で自動管理
    ├── 処理完了後に自動的にクローズ
    └── エラー時も適切にクローズ
+   ├── 内部からデコレータ付関数を呼ぶ場合、`connection=...` のキーワード引数で渡す
 
 3. トランザクション管理
    ├── 更新処理は自動的にコミット

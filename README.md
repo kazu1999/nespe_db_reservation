@@ -18,11 +18,13 @@
 ### 依存ファイル
 - **user.py** - ユーザー認証機能
 - **taio_record.py** - 対応履歴記録機能
-- **connection.py** - データベース接続機能
-- **utils.py** - ユーティリティ機能
+- **connection.py** - データベース接続機能（`utils/db_utils.py` から呼び出し）
+- **utils/** - パッケージ。`from utils import handle_db_exception` が利用可能
+- **utils.py** - 追加ユーティリティ（パッケージ `utils/` とは別。基本は参照不要）
 
 ### utilsフォルダー
-- **utils/db_utils.py** - データベース操作ユーティリティ
+- **utils/__init__.py** - 共通公開関数（`handle_db_exception` をエクスポート）
+- **utils/db_utils.py** - データベース操作ユーティリティ（接続はローカルの `connection.get_connection` を使用）
 - **utils/pattern_utils.py** - パターン処理ユーティリティ
 - **utils/time_utils.py** - 時間処理ユーティリティ
 
@@ -227,6 +229,7 @@ print(f"予約サマリー: {summary_result}")
 - `get_reservation_status(room_number, building_id)`: 予約状況を取得
 - `get_upcoming_reservations(room_number, building_id, days_ahead)`: 今後の予約を取得
 - `get_reservation_summary(room_number, building_id)`: 予約サマリーを取得
+  - 実装メモ: デコレータ付き関数の内部呼び出しでは `connection=...` のキーワード引数で渡しています
 
 ### 認証あり版
 
@@ -246,6 +249,7 @@ print(f"予約サマリー: {summary_result}")
 - `get_reservation_status(room_number, password, building_id)`: 予約状況を取得
 - `get_upcoming_reservations(room_number, password, building_id, days_ahead)`: 今後の予約を取得
 - `get_reservation_summary(room_number, password, building_id)`: 予約サマリーを取得
+  - 実装メモ: デコレータ付き関数の内部呼び出しでは `connection=...` のキーワード引数で渡しています
 
 ## 戻り値の形式
 
@@ -272,12 +276,14 @@ print(f"予約サマリー: {summary_result}")
 2. **データベース接続**: 各ファイルは独立して動作しますが、データベース接続が必要です
 3. **エラーハンドリング**: 各関数は適切なエラーハンドリングを行います
 4. **ログ記録**: 更新操作は自動的にログに記録されます
+5. **空き枠/営業時間**: 営業時間設定（`tSettingM`）と空き枠（スタイリスト枠・`WakuRange`・予約件数）を考慮
 
 ### 認証あり版
 1. **認証必要**: 部屋番号・パスワード・物件IDの認証が必要です
 2. **データベース接続**: 各ファイルは独立して動作しますが、データベース接続が必要です
 3. **エラーハンドリング**: 各関数は適切なエラーハンドリングを行います
 4. **ログ記録**: 更新操作は自動的にログに記録されます
+5. **空き枠/営業時間**: 認証後に同様の検証・チェックを実施
 
 ## テスト実行
 
@@ -311,7 +317,7 @@ python reservation_fetcher_password.py
 
 - **user.py**: 認証機能
 - **taio_record.py**: ログ記録機能
-- **utils.py**: エラーハンドリング
+- **utils/__init__.py**: エラーハンドリング（`handle_db_exception`）
 - **connection.py**: データベース接続
 - **utils/**: ユーティリティ機能（db_utils, pattern_utils, time_utils）
 
