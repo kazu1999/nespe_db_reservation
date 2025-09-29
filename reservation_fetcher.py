@@ -267,17 +267,17 @@ class ReservationFetcher:
         """
         try:
             # 1. 現在の予約を取得
-            current_reservation = ReservationFetcher.get_reservation_date(room_number, building_id, connection)
+            current_reservation = ReservationFetcher.get_reservation_date(room_number, building_id, connection=connection)
             if "error" in current_reservation:
                 return current_reservation
             
             # 2. 予約状況を取得
-            status_info = ReservationFetcher.get_reservation_status(room_number, building_id, connection)
+            status_info = ReservationFetcher.get_reservation_status(room_number, building_id, connection=connection)
             if "error" in status_info:
                 return status_info
             
             # 3. 今後の予約を取得
-            upcoming_reservations = ReservationFetcher.get_upcoming_reservations(room_number, building_id, connection)
+            upcoming_reservations = ReservationFetcher.get_upcoming_reservations(room_number, building_id, connection=connection)
             if "error" in upcoming_reservations:
                 return upcoming_reservations
             
