@@ -13,6 +13,7 @@ from utils import handle_db_exception
 from utils.pattern_utils import PatternUtils
 from utils.time_utils import TimeUtils
 from utils.db_utils import db_connection, DBUtils
+from availability_checker import SlotAvailabilityChecker
 
 
 class FirstChoiceUpdater:
@@ -135,9 +136,18 @@ class FirstChoiceUpdater:
             if "error" in pattern_info:
                 return pattern_info
             
-            # 空き枠チェック（簡易版）
-            # 実際の空き枠チェックロジックをここに実装
-            # ここでは基本的な検証のみ行う
+            # 空き枠チェックの実行
+            availability_checker = SlotAvailabilityChecker(building_id, connection)
+            result = availability_checker.check_slot_availability(new_datetime)
+            
+            if not result.get("available"):
+                return {"error": "選択された日時は満枠です。別の日時を選択してください。"}
+            
+            return {
+                "available": True,
+                "stylist_cd": result.get("stylist_cd"),
+                "type": result.get("type", "normal")
+            }
             
             return {"available": True}
             
