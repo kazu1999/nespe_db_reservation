@@ -301,33 +301,33 @@ class ReservationFetcher:
 def get_reservation_date(room_number: str, building_id: str, connection=None) -> dict:
     """予約日程を取得（外部呼び出し用）"""
     fetcher = ReservationFetcher()
-    return fetcher.get_reservation_date(room_number, building_id, connection)
+    return fetcher.get_reservation_date(room_number, building_id, connection=connection)
 
 
 def get_reservation_history(room_number: str, building_id: str, 
                           limit: int = 10, connection=None) -> dict:
     """予約履歴を取得（外部呼び出し用）"""
     fetcher = ReservationFetcher()
-    return fetcher.get_reservation_history(room_number, building_id, limit, connection)
+    return fetcher.get_reservation_history(room_number, building_id, limit, connection=connection)
 
 
 def get_reservation_status(room_number: str, building_id: str, connection=None) -> dict:
     """予約状況を取得（外部呼び出し用）"""
     fetcher = ReservationFetcher()
-    return fetcher.get_reservation_status(room_number, building_id, connection)
+    return fetcher.get_reservation_status(room_number, building_id, connection=connection)
 
 
 def get_upcoming_reservations(room_number: str, building_id: str, 
                              days_ahead: int = 30, connection=None) -> dict:
     """今後の予約を取得（外部呼び出し用）"""
     fetcher = ReservationFetcher()
-    return fetcher.get_upcoming_reservations(room_number, building_id, days_ahead, connection)
+    return fetcher.get_upcoming_reservations(room_number, building_id, days_ahead, connection=connection)
 
 
 def get_reservation_summary(room_number: str, building_id: str, connection=None) -> dict:
     """予約サマリーを取得（外部呼び出し用）"""
     fetcher = ReservationFetcher()
-    return fetcher.get_reservation_summary(room_number, building_id, connection)
+    return fetcher.get_reservation_summary(room_number, building_id, connection=connection)
 
 
 if __name__ == "__main__":

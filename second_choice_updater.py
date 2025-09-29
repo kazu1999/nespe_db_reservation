@@ -295,26 +295,26 @@ def update_second_choice(room_number: str, building_id: str,
                         second_choice_text: str, connection=None) -> dict:
     """第二希望を更新（外部呼び出し用）"""
     updater = SecondChoiceUpdater()
-    return updater.update_second_choice(room_number, building_id, second_choice_text, connection)
+    return updater.update_second_choice(room_number, building_id, second_choice_text, connection=connection)
 
 
 def get_current_second_choice(room_number: str, building_id: str, connection=None) -> dict:
     """現在の第二希望を取得（外部呼び出し用）"""
     updater = SecondChoiceUpdater()
-    return updater.get_current_second_choice(room_number, building_id, connection)
+    return updater.get_current_second_choice(room_number, building_id, connection=connection)
 
 
 def clear_second_choice(room_number: str, building_id: str, connection=None) -> dict:
     """第二希望をクリア（外部呼び出し用）"""
     updater = SecondChoiceUpdater()
-    return updater.clear_second_choice(room_number, building_id, connection)
+    return updater.clear_second_choice(room_number, building_id, connection=connection)
 
 
 def get_second_choice_history(room_number: str, building_id: str, 
                              limit: int = 10, connection=None) -> dict:
     """第二希望の変更履歴を取得（外部呼び出し用）"""
     updater = SecondChoiceUpdater()
-    return updater.get_second_choice_history(room_number, building_id, limit, connection)
+    return updater.get_second_choice_history(room_number, building_id, limit, connection=connection)
 
 
 if __name__ == "__main__":

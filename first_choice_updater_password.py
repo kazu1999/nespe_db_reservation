@@ -478,13 +478,13 @@ def update_first_choice(room_number: str, password: str, building_id: str,
                        new_datetime: str, connection=None) -> dict:
     """第一希望の日時を更新（外部呼び出し用）"""
     updater = FirstChoiceUpdater()
-    return updater.update_first_choice(room_number, password, building_id, new_datetime, connection)
+    return updater.update_first_choice(room_number, password, building_id, new_datetime, connection=connection)
 
 
 def get_available_slots(building_id: str, date: str, connection=None) -> dict:
     """指定日の利用可能な時間枠を取得（外部呼び出し用）"""
     updater = FirstChoiceUpdater()
-    return updater.get_available_slots(building_id, date, connection)
+    return updater.get_available_slots(building_id, date, connection=connection)
 
 
 if __name__ == "__main__":
