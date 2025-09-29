@@ -140,7 +140,7 @@ class SecondChoiceUpdater:
         try:
             # 第二希望の内容をマスク（個人情報保護）
             masked_choice = second_choice_text[:50] + "..." if len(second_choice_text) > 50 else second_choice_text
-            notes = f"[LINE第二希望更新] {masked_choice}"
+            notes = f"[AI電話第二希望更新] {masked_choice}"
             
             insert_taio_record(
                 room_number=room_number,
@@ -238,7 +238,7 @@ class SecondChoiceUpdater:
     def _log_second_choice_clear(room_number, building_id, connection):
         """第二希望クリア履歴をログに記録"""
         try:
-            notes = "[LINE第二希望クリア] 第二希望を削除しました"
+            notes = "[AI電話第二希望クリア] 第二希望を削除しました"
             
             insert_taio_record(
                 room_number=room_number,

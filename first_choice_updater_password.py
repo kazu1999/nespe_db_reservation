@@ -118,13 +118,120 @@ class FirstChoiceUpdater:
             if parsed_datetime <= datetime.now():
                 return {"error": "過去の日時は選択できません。未来の日時を選択してください。"}
             
-            # 物件の営業時間チェック（必要に応じて）
-            # ここで営業時間の検証ロジックを追加可能
+            # 物件の営業時間チェック
+            business_hours_result = FirstChoiceUpdater._check_business_hours(
+                parsed_datetime, building_id, connection)
+            if "error" in business_hours_result:
+                return business_hours_result
             
             return {"valid": True, "parsed_datetime": parsed_datetime}
             
         except Exception as e:
             return {"error": f"日時検証エラー: {str(e)}"}
+    
+    @staticmethod
+    def _check_business_hours(parsed_datetime, building_id, connection):
+        """営業時間チェック"""
+        try:
+            # 営業時間設定を取得
+            business_hours = FirstChoiceUpdater._get_business_hours(building_id, connection)
+            if "error" in business_hours:
+                return business_hours
+            
+            # 曜日を取得（0=月曜日, 6=日曜日）
+            weekday = parsed_datetime.weekday()
+            time_str = parsed_datetime.strftime("%H:%M")
+            
+            # 営業時間チェック
+            if weekday in business_hours["weekdays"]:
+                # 平日の営業時間チェック
+                if not FirstChoiceUpdater._is_within_business_hours(
+                    time_str, business_hours["weekday_hours"]):
+                    return {"error": f"平日の営業時間外です。営業時間: {business_hours['weekday_hours']['start']}-{business_hours['weekday_hours']['end']}"}
+            elif weekday == 6:  # 日曜日
+                if business_hours["sunday_hours"]:
+                    if not FirstChoiceUpdater._is_within_business_hours(
+                        time_str, business_hours["sunday_hours"]):
+                        return {"error": f"日曜日の営業時間外です。営業時間: {business_hours['sunday_hours']['start']}-{business_hours['sunday_hours']['end']}"}
+                else:
+                    return {"error": "日曜日は営業していません。"}
+            else:  # 土曜日
+                if business_hours["saturday_hours"]:
+                    if not FirstChoiceUpdater._is_within_business_hours(
+                        time_str, business_hours["saturday_hours"]):
+                        return {"error": f"土曜日の営業時間外です。営業時間: {business_hours['saturday_hours']['start']}-{business_hours['saturday_hours']['end']}"}
+                else:
+                    return {"error": "土曜日は営業していません。"}
+            
+            return {"valid": True}
+            
+        except Exception as e:
+            return {"error": f"営業時間チェックエラー: {str(e)}"}
+    
+    @staticmethod
+    def _get_business_hours(building_id, connection):
+        """物件の営業時間設定を取得"""
+        try:
+            # tSettingMテーブルから営業時間設定を取得
+            sql = """
+            SELECT 
+                BusinessStartTime, BusinessEndTime,
+                SaturdayStartTime, SaturdayEndTime,
+                SundayStartTime, SundayEndTime,
+                BusinessWeekdays
+            FROM tSettingM 
+            WHERE ClientCD = %s
+            """
+            result = DBUtils.execute_single_query(connection, sql, (building_id,))
+            
+            if not result:
+                return {"error": "物件の営業時間設定が見つかりません。"}
+            
+            # デフォルト値の設定
+            weekday_hours = {
+                "start": result.get("BusinessStartTime", "09:00"),
+                "end": result.get("BusinessEndTime", "18:00")
+            }
+            
+            saturday_hours = None
+            if result.get("SaturdayStartTime") and result.get("SaturdayEndTime"):
+                saturday_hours = {
+                    "start": result["SaturdayStartTime"],
+                    "end": result["SaturdayEndTime"]
+                }
+            
+            sunday_hours = None
+            if result.get("SundayStartTime") and result.get("SundayEndTime"):
+                sunday_hours = {
+                    "start": result["SundayStartTime"],
+                    "end": result["SundayEndTime"]
+                }
+            
+            # 営業曜日の取得（デフォルトは月-金）
+            business_weekdays_str = result.get("BusinessWeekdays", "0,1,2,3,4")
+            weekdays = [int(x.strip()) for x in business_weekdays_str.split(",") if x.strip().isdigit()]
+            
+            return {
+                "weekday_hours": weekday_hours,
+                "saturday_hours": saturday_hours,
+                "sunday_hours": sunday_hours,
+                "weekdays": weekdays
+            }
+            
+        except Exception as e:
+            return {"error": f"営業時間設定取得エラー: {str(e)}"}
+    
+    @staticmethod
+    def _is_within_business_hours(time_str, hours):
+        """指定時間が営業時間内かチェック"""
+        try:
+            target_time = datetime.strptime(time_str, "%H:%M").time()
+            start_time = datetime.strptime(hours["start"], "%H:%M").time()
+            end_time = datetime.strptime(hours["end"], "%H:%M").time()
+            
+            return start_time <= target_time < end_time
+        except Exception:
+            return False
     
     @staticmethod
     def _check_availability(building_id, new_datetime, connection):
@@ -148,8 +255,6 @@ class FirstChoiceUpdater:
                 "stylist_cd": result.get("stylist_cd"),
                 "type": result.get("type", "normal")
             }
-            
-            return {"available": True}
             
         except Exception as e:
             return {"error": f"空き枠チェックエラー: {str(e)}"}
@@ -184,7 +289,7 @@ class FirstChoiceUpdater:
     def _log_first_choice_update(room_number, building_id, new_datetime, connection):
         """第一希望更新履歴をログに記録"""
         try:
-            notes = f"[LINE第一希望更新] {new_datetime}"
+            notes = f"[AI電話第一希望更新] {new_datetime}"
             
             insert_taio_record(
                 room_number=room_number,
@@ -213,45 +318,158 @@ class FirstChoiceUpdater:
             dict: 利用可能な時間枠
         """
         try:
+            # 日付の検証
+            try:
+                parsed_date = datetime.strptime(date, "%Y-%m-%d")
+            except ValueError:
+                return {"error": "日付の形式が正しくありません。YYYY-MM-DD形式で入力してください。"}
+            
+            # 過去日付のチェック
+            if parsed_date.date() < datetime.now().date():
+                return {"error": "過去の日付は選択できません。未来の日付を選択してください。"}
+            
             # パターン情報を取得
             pattern_utils = PatternUtils()
             pattern_info = pattern_utils.get_pattern_info(building_id, connection)
             if "error" in pattern_info:
                 return pattern_info
             
-            # 時間枠を生成（簡易版）
-            # 実際の時間枠生成ロジックをここに実装
-            time_slots = FirstChoiceUpdater._generate_time_slots(date, pattern_info)
+            # 営業時間設定を取得
+            business_hours = FirstChoiceUpdater._get_business_hours(building_id, connection)
+            if "error" in business_hours:
+                return business_hours
+            
+            # 時間枠を生成
+            time_slots = FirstChoiceUpdater._generate_time_slots(
+                date, pattern_info, business_hours, building_id, connection)
             
             return {
                 "result": "ok",
                 "date": date,
                 "time_slots": time_slots,
-                "total_slots": len(time_slots)
+                "total_slots": len(time_slots),
+                "available_slots": len([slot for slot in time_slots if slot.get("available", False)])
             }
             
         except Exception as e:
             return {"error": f"時間枠取得エラー: {str(e)}"}
     
     @staticmethod
-    def _generate_time_slots(date, pattern_info):
-        """時間枠を生成（簡易版）"""
+    def _generate_time_slots(date, pattern_info, business_hours, building_id, connection):
+        """時間枠を生成（完全版）"""
         try:
-            # 基本的な時間枠を生成
-            # 実際の実装では、パターン情報に基づいて時間枠を生成
             time_slots = []
+            parsed_date = datetime.strptime(date, "%Y-%m-%d")
+            weekday = parsed_date.weekday()
             
-            # 例：9:00-17:00の1時間刻み
-            for hour in range(9, 17):
+            # 曜日別の営業時間を取得
+            if weekday in business_hours["weekdays"]:
+                # 平日
+                start_time = business_hours["weekday_hours"]["start"]
+                end_time = business_hours["weekday_hours"]["end"]
+            elif weekday == 6:  # 日曜日
+                if not business_hours["sunday_hours"]:
+                    return []  # 日曜日は営業していない
+                start_time = business_hours["sunday_hours"]["start"]
+                end_time = business_hours["sunday_hours"]["end"]
+            else:  # 土曜日
+                if not business_hours["saturday_hours"]:
+                    return []  # 土曜日は営業していない
+                start_time = business_hours["saturday_hours"]["start"]
+                end_time = business_hours["saturday_hours"]["end"]
+            
+            # パターン情報から時間枠を生成
+            start_times = pattern_info.get('start_times', [])
+            end_times = pattern_info.get('end_times', [])
+            
+            if not start_times or not end_times:
+                return []
+            
+            # 各時間枠をチェック
+            for i, (start_time_pattern, end_time_pattern) in enumerate(zip(start_times, end_times)):
+                # 営業時間内かチェック
+                if not FirstChoiceUpdater._is_within_business_hours(start_time_pattern, {
+                    "start": start_time, "end": end_time
+                }):
+                    continue
+                
+                # 空き枠チェック
+                datetime_str = f"{date} {start_time_pattern}"
+                availability_result = FirstChoiceUpdater._check_slot_availability(
+                    building_id, datetime_str, connection)
+                
+                # スタイリスト情報を取得
+                stylist_info = FirstChoiceUpdater._get_available_stylists(
+                    building_id, datetime_str, connection)
+                
                 time_slots.append({
-                    "time": f"{date} {hour:02d}:00",
-                    "available": True,
-                    "stylist": "ST001"
+                    "time": datetime_str,
+                    "start_time": start_time_pattern,
+                    "end_time": end_time_pattern,
+                    "available": availability_result.get("available", False),
+                    "stylist_cd": availability_result.get("stylist_cd"),
+                    "type": availability_result.get("type", "normal"),
+                    "stylists": stylist_info,
+                    "slot_index": i
                 })
             
             return time_slots
             
         except Exception as e:
+            print(f"[_generate_time_slots] エラー: {e}")
+            return []
+    
+    @staticmethod
+    def _check_slot_availability(building_id, datetime_str, connection):
+        """指定日時の空き枠をチェック"""
+        try:
+            availability_checker = SlotAvailabilityChecker(building_id, connection)
+            result = availability_checker.check_slot_availability(datetime_str)
+            return result
+        except Exception as e:
+            print(f"[_check_slot_availability] エラー: {e}")
+            return {"available": False, "type": None}
+    
+    @staticmethod
+    def _get_available_stylists(building_id, datetime_str, connection):
+        """指定日時に利用可能なスタイリスト一覧を取得"""
+        try:
+            sql = """
+            SELECT 
+                sm.StylistCD,
+                sm.StylistName,
+                sm.NumberOfLines,
+                COUNT(rf.UserCD) as current_reservations
+            FROM tStylistM sm
+            LEFT JOIN tReservationF rf ON (
+                sm.StylistCD = rf.StylistCD 
+                AND rf.ClientCD = %s 
+                AND DATE_FORMAT(rf.TimeFrom, '%%Y-%%m-%%d %%H:%%i') = %s
+                AND rf.MukouFlg = 0 
+                AND rf.Status = 1
+            )
+            WHERE sm.ClientCD = %s 
+            AND sm.MukouFlg = 0 
+            AND (sm.WakugoeFlg IS NULL OR sm.WakugoeFlg = 0)
+            GROUP BY sm.StylistCD, sm.StylistName, sm.NumberOfLines
+            HAVING current_reservations < sm.NumberOfLines
+            ORDER BY sm.StylistCD
+            """
+            stylists = DBUtils.execute_query(connection, sql, (building_id, datetime_str, building_id))
+            
+            return [
+                {
+                    "stylist_cd": stylist["StylistCD"],
+                    "stylist_name": stylist["StylistName"],
+                    "available": True,
+                    "current_reservations": stylist["current_reservations"],
+                    "max_reservations": stylist["NumberOfLines"]
+                }
+                for stylist in stylists
+            ]
+            
+        except Exception as e:
+            print(f"[_get_available_stylists] エラー: {e}")
             return []
 
 
