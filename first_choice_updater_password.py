@@ -240,7 +240,7 @@ class FirstChoiceUpdater:
             # パターン情報を取得
             pattern_utils = PatternUtils()
             pattern_info = pattern_utils.get_pattern_info(building_id, connection)
-            if "error" in pattern_info:
+            if not pattern_info or (isinstance(pattern_info, dict) and "error" in pattern_info):
                 return pattern_info
             
             # 空き枠チェックの実行

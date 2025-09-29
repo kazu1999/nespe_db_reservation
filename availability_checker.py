@@ -7,7 +7,6 @@ from collections import Counter
 from utils.pattern_utils import PatternUtils
 from utils.time_utils import TimeUtils
 from utils.db_utils import db_connection, DBUtils
-from availability_checker import SlotAvailabilityChecker
 
 
 class SlotAvailabilityChecker:

@@ -2,7 +2,7 @@
 データベース操作関連のユーティリティ関数
 """
 from functools import wraps
-from chatbot_scripts.models.connection import get_connection
+from connection import get_connection
 
 
 def db_connection(func):
