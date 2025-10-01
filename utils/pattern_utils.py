@@ -14,9 +14,9 @@ class PatternUtils:
         """分単位を取得"""
         try:
             row = DBUtils.execute_single_query(connection, "SELECT MinuteUnit FROM tSettingM WHERE ClientCD = %s", (building_id,))
-                if row and row.get('MinuteUnit') not in (None, '', 0, '0'):
-                    return int(row['MinuteUnit'])
-                return 60  # デフォルト値
+            if row and row.get('MinuteUnit') not in (None, '', 0, '0'):
+                return int(row['MinuteUnit'])
+            return 60  # デフォルト値
         except Exception:
             return 60  # デフォルト値
     
@@ -26,7 +26,7 @@ class PatternUtils:
         try:
             sql = "SELECT MinuteType FROM tMenuM WHERE MenuCD = %s AND ClientCD = %s AND MukouFlg = 0"
             row = DBUtils.execute_single_query(connection, sql, (menu_cd, building_id))
-                return int(row['MinuteType']) if row and row.get('MinuteType') else 1
+            return int(row['MinuteType']) if row and row.get('MinuteType') else 1
         except Exception:
             return 1  # デフォルト値
     
@@ -35,7 +35,7 @@ class PatternUtils:
         """枠パターンIDを取得"""
         try:
             row = DBUtils.execute_single_query(connection, "SELECT WakuPatternID FROM tSettingM WHERE ClientCD = %s", (building_id,))
-                return row['WakuPatternID'] if row and row.get('WakuPatternID') else None
+            return row['WakuPatternID'] if row and row.get('WakuPatternID') else None
         except Exception:
             return None
     
