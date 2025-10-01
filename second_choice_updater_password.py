@@ -347,13 +347,13 @@ if __name__ == "__main__":
     print("第二希望更新機能のテスト（認証あり版）")
     
     # 現在の第二希望を取得
-    current_result = get_current_second_choice("101", "password123", "12345")
+    current_result = get_current_second_choice("103", "password123", "3760")
     print(f"現在の第二希望: {current_result}")
     
     # 第二希望を更新
-    update_result = update_second_choice("101", "password123", "12345", "午前中希望、午後は不可")
+    update_result = update_second_choice("103", "password123", "3760", "午前中希望、午後は不可")
     print(f"第二希望更新結果: {update_result}")
     
     # 第二希望をクリア
-    clear_result = clear_second_choice("101", "password123", "12345")
+    clear_result = clear_second_choice("103", "password123", "3760")
     print(f"第二希望クリア結果: {clear_result}")

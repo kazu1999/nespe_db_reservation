@@ -3,6 +3,7 @@
 """
 import requests
 import json
+from utils.db_utils import DBUtils
 
 
 class PatternUtils:
@@ -12,9 +13,7 @@ class PatternUtils:
     def get_minute_unit(building_id, connection):
         """分単位を取得"""
         try:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT MinuteUnit FROM tSettingM WHERE ClientCD = %s", (building_id,))
-                row = cursor.fetchone()
+            row = DBUtils.execute_single_query(connection, "SELECT MinuteUnit FROM tSettingM WHERE ClientCD = %s", (building_id,))
                 if row and row.get('MinuteUnit') not in (None, '', 0, '0'):
                     return int(row['MinuteUnit'])
                 return 60  # デフォルト値
@@ -25,10 +24,8 @@ class PatternUtils:
     def get_minute_type(menu_cd, building_id, connection):
         """メニューの分タイプを取得"""
         try:
-            with connection.cursor() as cursor:
-                sql = "SELECT MinuteType FROM tMenuM WHERE MenuCD = %s AND ClientCD = %s AND MukouFlg = 0"
-                cursor.execute(sql, (menu_cd, building_id))
-                row = cursor.fetchone()
+            sql = "SELECT MinuteType FROM tMenuM WHERE MenuCD = %s AND ClientCD = %s AND MukouFlg = 0"
+            row = DBUtils.execute_single_query(connection, sql, (menu_cd, building_id))
                 return int(row['MinuteType']) if row and row.get('MinuteType') else 1
         except Exception:
             return 1  # デフォルト値
@@ -37,9 +34,7 @@ class PatternUtils:
     def get_waku_pattern_id(building_id, connection):
         """枠パターンIDを取得"""
         try:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT WakuPatternID FROM tSettingM WHERE ClientCD = %s", (building_id,))
-                row = cursor.fetchone()
+            row = DBUtils.execute_single_query(connection, "SELECT WakuPatternID FROM tSettingM WHERE ClientCD = %s", (building_id,))
                 return row['WakuPatternID'] if row and row.get('WakuPatternID') else None
         except Exception:
             return None

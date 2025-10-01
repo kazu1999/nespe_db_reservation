@@ -361,17 +361,17 @@ if __name__ == "__main__":
     print("予約日程取得機能のテスト（認証あり版）")
     
     # 予約日程を取得
-    date_result = get_reservation_date("101", "password123", "12345")
+    date_result = get_reservation_date("103", "password123", "3760")
     print(f"予約日程: {date_result}")
     
     # 予約状況を取得
-    status_result = get_reservation_status("101", "password123", "12345")
+    status_result = get_reservation_status("103", "password123", "3760")
     print(f"予約状況: {status_result}")
     
     # 今後の予約を取得
-    upcoming_result = get_upcoming_reservations("101", "password123", "12345", days_ahead=7)
+    upcoming_result = get_upcoming_reservations("103", "password123", "3760", days_ahead=7)
     print(f"今後の予約: {upcoming_result}")
     
     # 予約サマリーを取得
-    summary_result = get_reservation_summary("101", "password123", "12345")
+    summary_result = get_reservation_summary("103", "password123", "3760")
     print(f"予約サマリー: {summary_result}")

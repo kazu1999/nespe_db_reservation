@@ -485,9 +485,9 @@ if __name__ == "__main__":
     print("第一希望更新機能のテスト")
     
     # 利用可能な時間枠を取得
-    slots_result = get_available_slots("12345", "2024-01-15")
+    slots_result = get_available_slots("3760", "2024-01-15")
     print(f"時間枠取得結果: {slots_result}")
     
     # 第一希望を更新
-    update_result = update_first_choice("101", "12345", "2024-01-15 10:00")
+    update_result = update_first_choice("103", "3760", "2024-01-15 10:00")
     print(f"第一希望更新結果: {update_result}")

@@ -8,6 +8,7 @@ import os
 # ローカルモジュールをインポート
 from connection import get_connection
 from utils import handle_db_exception
+from utils.db_utils import DBUtils
 
 
 def insert_taio_record(room_number: str, building_id: str, notes: str, category: str, 
@@ -35,32 +36,29 @@ def insert_taio_record(room_number: str, building_id: str, notes: str, category:
         close_conn = True
     
     try:
-        with connection.cursor() as cursor:
-            print(f"[insert_taio_record] params: room_number={room_number}, building_id={building_id}, notes={notes}, category={category}, creator={creator}, updater={updater}, last_time_nittei={last_time_nittei}")
-            
-            # TaioCDの最新値を取得し+1
-            cursor.execute("SELECT MAX(TaioCD) AS max_taio_cd FROM tTaioF")
-            row = cursor.fetchone()
-            new_taio_cd = (row["max_taio_cd"] or 0) + 1
-            
-            sql = """
-                INSERT INTO tTaioF (
-                    TaioCD, ClientCD, UserCD, Category, TaioNotes, LastTimeNittei, Creator, Updater, Created, Updated
-                ) VALUES (
-                    %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW()
-                )
-            """
-            last_time_value = last_time_nittei if last_time_nittei and str(last_time_nittei).strip() else None
-            print(f"[insert_taio_record] LastTimeNittei処理: 元の値='{last_time_nittei}', 設定値='{last_time_value}'")
-            
-            params = [new_taio_cd, building_id, room_number, category, notes, last_time_value, creator, updater]
-            print(f"[insert_taio_record] SQL params: {params}")
-            
-            cursor.execute(sql, tuple(params))
-            connection.commit()
-            print(f"[insert_taio_record] 登録完了: TaioCD={new_taio_cd}")
-            
-            return {"result": "ok", "TaioCD": new_taio_cd}
+        print(f"[insert_taio_record] params: room_number={room_number}, building_id={building_id}, notes={notes}, category={category}, creator={creator}, updater={updater}, last_time_nittei={last_time_nittei}")
+        
+        # TaioCDの最新値を取得し+1
+        row = DBUtils.execute_single_query(connection, "SELECT MAX(TaioCD) AS max_taio_cd FROM tTaioF", None)
+        new_taio_cd = (row["max_taio_cd"] or 0) + 1
+        
+        sql = """
+            INSERT INTO tTaioF (
+                TaioCD, ClientCD, UserCD, Category, TaioNotes, LastTimeNittei, Creator, Updater, Created, Updated
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW()
+            )
+        """
+        last_time_value = last_time_nittei if last_time_nittei and str(last_time_nittei).strip() else None
+        print(f"[insert_taio_record] LastTimeNittei処理: 元の値='{last_time_nittei}', 設定値='{last_time_value}'")
+        
+        params = [new_taio_cd, building_id, room_number, category, notes, last_time_value, creator, updater]
+        print(f"[insert_taio_record] SQL params: {params}")
+        
+        DBUtils.execute_update(connection, sql, tuple(params))
+        print(f"[insert_taio_record] 登録完了: TaioCD={new_taio_cd}")
+        
+        return {"result": "ok", "TaioCD": new_taio_cd}
             
     except Exception as e:
         if connection:
