@@ -1,5 +1,5 @@
-from chatbot_scripts.models.connection import get_connection
-from chatbot_scripts.logic.utils import handle_db_exception
+from connection import get_connection
+from utils import handle_db_exception
 
 def authenticate_user(room_number: str, password: str, building_id: str, connection=None) -> dict:
     close_conn = False
