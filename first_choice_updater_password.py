@@ -283,13 +283,18 @@ class FirstChoiceUpdater:
     def _execute_first_choice_update(room_number, building_id, new_datetime, old_datetime, connection):
         """第一希望更新の実行"""
         try:
-            # 第一希望を更新
+            # 第一希望を更新（TimeToも MinuteUnit 分加算した値を同時に更新）
             update_sql = """
-            UPDATE tReservationF 
-            SET TimeFrom = %s, Updated = NOW(), Updater = %s 
-            WHERE TimeFrom = %s AND UserCD = %s AND ClientCD = %s
+            UPDATE tReservationF tr
+            JOIN tSettingM ts ON ts.ClientCD = tr.ClientCD
+            SET tr.TimeFrom = %s,
+                tr.TimeTo   = DATE_ADD(%s, INTERVAL ts.MinuteUnit MINUTE),
+                tr.Updated  = NOW(),
+                tr.Updater  = %s
+            WHERE tr.TimeFrom = %s AND tr.UserCD = %s AND tr.ClientCD = %s
             """
             row_count = DBUtils.execute_update(connection, update_sql, (
+                new_datetime,
                 new_datetime,
                 room_number,
                 old_datetime,
