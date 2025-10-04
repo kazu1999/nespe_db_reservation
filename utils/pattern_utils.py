@@ -33,9 +33,11 @@ class PatternUtils:
     @staticmethod
     def get_waku_pattern_id(building_id, connection):
         """枠パターンIDを取得"""
+        # WakuPatternIDではなくWakuPatternを取得するように修正
         try:
-            row = DBUtils.execute_single_query(connection, "SELECT WakuPatternID FROM tSettingM WHERE ClientCD = %s", (building_id,))
-            return row['WakuPatternID'] if row and row.get('WakuPatternID') else None
+            row = DBUtils.execute_single_query(connection, "SELECT WakuPattern FROM tSettingM WHERE ClientCD = %s", (building_id))
+            if row and 'WakuPattern' in row:
+                return row['WakuPattern']
         except Exception:
             return None
     

@@ -165,6 +165,7 @@ class FirstChoiceUpdater:
     def _get_business_hours(building_id, connection):
         """物件の営業時間設定を取得"""
         try:
+            '''
             # tSettingMテーブルから営業時間設定を取得
             sql = """
             SELECT 
@@ -203,7 +204,26 @@ class FirstChoiceUpdater:
             # 営業曜日の取得（デフォルトは月-金）
             business_weekdays_str = result.get("BusinessWeekdays", "0,1,2,3,4")
             weekdays = [int(x.strip()) for x in business_weekdays_str.split(",") if x.strip().isdigit()]
-            
+            '''
+
+            # tSettingMテーブルにこれらのcolumnsは存在しないからデフォルトの値を入れておく
+            # BusinessStartTime, BusinessEndTime,
+            # SaturdayStartTime, SaturdayEndTime,
+            # SundayStartTime, SundayEndTime,
+            # BusinessWeekdays
+
+            weekday_hours = {
+                "start": "09:00",
+                "end": "18:00"
+            }
+
+            saturday_hours = None
+
+            sunday_hours = None
+
+            business_weekdays_str = "0,1,2,3,4"
+            weekdays = [int(x.strip()) for x in business_weekdays_str.split(",") if x.strip().isdigit()]
+
             return {
                 "weekday_hours": weekday_hours,
                 "saturday_hours": saturday_hours,
@@ -258,11 +278,16 @@ class FirstChoiceUpdater:
         try:
             # 第一希望を更新
             update_sql = """
-            UPDATE tReservationF 
-            SET TimeFrom = %s, Updated = NOW(), Updater = %s 
-            WHERE TimeFrom = %s AND UserCD = %s AND ClientCD = %s
+            UPDATE tReservationF tr
+            JOIN tSettingM ts ON ts.ClientCD = tr.ClientCD
+            SET tr.TimeFrom = %s,
+                tr.TimeTo   = DATE_ADD(%s, INTERVAL ts.MinuteUnit MINUTE),
+                tr.Updated  = NOW(),
+                tr.Updater  = %s
+            WHERE tr.TimeFrom = %s AND tr.UserCD = %s AND tr.ClientCD = %s
             """
             row_count = DBUtils.execute_update(connection, update_sql, (
+                new_datetime,
                 new_datetime,
                 room_number,
                 old_datetime,

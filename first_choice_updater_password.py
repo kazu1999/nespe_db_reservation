@@ -173,6 +173,7 @@ class FirstChoiceUpdater:
         """物件の営業時間設定を取得"""
         try:
             # tSettingMテーブルから営業時間設定を取得
+            '''
             sql = """
             SELECT 
                 BusinessStartTime, BusinessEndTime,
@@ -210,7 +211,26 @@ class FirstChoiceUpdater:
             # 営業曜日の取得（デフォルトは月-金）
             business_weekdays_str = result.get("BusinessWeekdays", "0,1,2,3,4")
             weekdays = [int(x.strip()) for x in business_weekdays_str.split(",") if x.strip().isdigit()]
-            
+            '''
+
+            # tSettingMテーブルにこれらのcolumnsは存在しないからデフォルトの値を入れておく
+            # BusinessStartTime, BusinessEndTime,
+            # SaturdayStartTime, SaturdayEndTime,
+            # SundayStartTime, SundayEndTime,
+            # BusinessWeekdays
+
+            weekday_hours = {
+                "start": "09:00",
+                "end": "18:00"
+            }
+
+            saturday_hours = None
+
+            sunday_hours = None
+
+            business_weekdays_str = "0,1,2,3,4"
+            weekdays = [int(x.strip()) for x in business_weekdays_str.split(",") if x.strip().isdigit()]
+
             return {
                 "weekday_hours": weekday_hours,
                 "saturday_hours": saturday_hours,
