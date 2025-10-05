@@ -14,6 +14,8 @@ from second_choice_content_logic import (
     build_second_choice_string,
     validate_second_choice_input,
 )
+from typing import Optional
+from utils.pattern_utils import PatternUtils
 
 
 class SecondChoiceUpdater:
@@ -25,7 +27,7 @@ class SecondChoiceUpdater:
                            date1: str, time1: str,
                            date2: str, time2: str,
                            date3: str = "", time3: str = "",
-                           waku_pattern_id: int = 0,
+                           waku_pattern_id: Optional[int] = None,
                            connection=None) -> dict:
         """
         第二希望を更新する（日時入力＋枠パターンから第二希望文字列を生成して保存）
@@ -40,7 +42,7 @@ class SecondChoiceUpdater:
             time2: 第二希望時間帯 (例: "13:00～16:00")
             date3: 第三希望日 (任意)
             time3: 第三希望時間帯 (任意)
-            waku_pattern_id: 枠パターンID
+            waku_pattern_id: 枠パターンID（未指定時は物件ごとに自動取得）
             connection: データベース接続
             
         Returns:
@@ -62,6 +64,13 @@ class SecondChoiceUpdater:
             validation = validate_second_choice_input(date1, time1, date2, time2, date3, time3)
             if not validation.get('valid', False):
                 return {"error": "入力エラー", "details": validation}
+            
+            # 3.5 waku_pattern_id 自動解決（未指定 or 0 を自動解決対象とする）
+            if not waku_pattern_id:
+                resolved_pid = PatternUtils.get_waku_pattern_id(building_id, connection)
+                if resolved_pid is None:
+                    return {"error": "WakuPatternIDが設定されていません。"}
+                waku_pattern_id = resolved_pid
             
             # 4. 第二希望文字列を組み立て
             second_choice_text = build_second_choice_string(
@@ -339,7 +348,7 @@ def update_second_choice(room_number: str, password: str, building_id: str,
                         date1: str, time1: str,
                         date2: str, time2: str,
                         date3: str = "", time3: str = "",
-                        waku_pattern_id: int = 0,
+                        waku_pattern_id: Optional[int] = None,
                         connection=None) -> dict:
     """第二希望を更新（外部呼び出し用: 日時＋枠パターンIDから文字列を生成）"""
     updater = SecondChoiceUpdater()
@@ -380,13 +389,13 @@ if __name__ == "__main__":
     current_result = get_current_second_choice("103", "password123", "3760")
     print(f"現在の第二希望: {current_result}")
     
-    # 第二希望を更新（日時 + 枠パターンIDを指定して文字列生成）
+    # 第二希望を更新（日時 + 枠パターンID自動解決）
     update_result = update_second_choice(
         "103", "password123", "3760",
         "2025-06-12", "09:00～12:00",
         "2025-06-13", "13:00～16:00",
         "2025-06-14", "18:00～21:00",
-        0,
+        None,
     )
     print(f"第二希望更新結果: {update_result}")
     

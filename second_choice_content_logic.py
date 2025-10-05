@@ -17,7 +17,7 @@ class SecondChoiceContentLogic:
         try:
             from utils.waku_loader import load_waku_patterns
             self.waku_patterns = load_waku_patterns()
-            print(self.waku_patterns)
+            # print(self.waku_patterns)
         except Exception:
             pass
     
