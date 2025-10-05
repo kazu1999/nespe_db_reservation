@@ -335,11 +335,22 @@ class SecondChoiceUpdater:
 
 
 # 便利関数（外部から直接呼び出し可能）
-def update_second_choice(room_number: str, password: str, building_id: str, 
-                        second_choice_text: str, connection=None) -> dict:
-    """第二希望を更新（外部呼び出し用）"""
+def update_second_choice(room_number: str, password: str, building_id: str,
+                        date1: str, time1: str,
+                        date2: str, time2: str,
+                        date3: str = "", time3: str = "",
+                        waku_pattern_id: int = 0,
+                        connection=None) -> dict:
+    """第二希望を更新（外部呼び出し用: 日時＋枠パターンIDから文字列を生成）"""
     updater = SecondChoiceUpdater()
-    return updater.update_second_choice(room_number, password, building_id, second_choice_text, connection=connection)
+    return updater.update_second_choice(
+        room_number, password, building_id,
+        date1, time1,
+        date2, time2,
+        date3, time3,
+        waku_pattern_id,
+        connection=connection,
+    )
 
 
 def get_current_second_choice(room_number: str, password: str, building_id: str, connection=None) -> dict:
