@@ -335,3 +335,28 @@ curl -X POST http://localhost:8000/api/v1/public/second-choice/update \
 
 - 認証版（`/api/v1/auth/reservation/...`）
   - 各エンドポイントは Query に `password` を含む以外は公開版と同様
+
+### 本番公開URLと動作確認
+
+- ベースURL: `https://call-api.489501.jp/nespe_db_reservation`
+- 例: ヘルスチェック
+  ```bash
+  curl -s https://call-api.489501.jp/nespe_db_reservation/api/v1/health
+  ```
+- 例: 第二希望の公開更新
+  ```bash
+  curl -X POST https://call-api.489501.jp/nespe_db_reservation/api/v1/public/second-choice/update \
+    -H "Content-Type: application/json" \
+    -d '{
+      "room_number": "103",
+      "building_id": "3760",
+      "date1": "2025-06-12",
+      "time1": "09:00～12:00",
+      "date2": "2025-06-13",
+      "time2": "13:00～16:00"
+    }'
+  ```
+- 例: 第一希望の空き枠取得
+  ```bash
+  curl "https://call-api.489501.jp/nespe_db_reservation/api/v1/public/first-choice/slots?building_id=3760&date=2025-06-12"
+  ```
