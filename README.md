@@ -9,11 +9,13 @@
 - **first_choice_updater.py** - 第一希望更新機能（認証なし）
 - **second_choice_updater.py** - 第二希望更新機能（認証なし）
 - **reservation_fetcher.py** - 予約日程取得機能（認証なし）
+- **get_building_name.py** - `ClientCD` から建物名（MansionName）取得（認証なし）
 
 ### メインファイル（認証あり版）
 - **first_choice_updater_password.py** - 第一希望更新機能（認証あり）
 - **second_choice_updater_password.py** - 第二希望更新機能（認証あり）
 - **reservation_fetcher_password.py** - 予約日程取得機能（認証あり）
+- **get_building_name_password.py** - 認証後に建物名（MansionName）取得（認証あり）
 
 ### 依存ファイル
 - **user.py** - ユーザー認証機能
@@ -28,37 +30,55 @@
 - **utils/pattern_utils.py** - パターン処理ユーティリティ
 - **utils/time_utils.py** - 時間処理ユーティリティ
 
+## 使用方法（抜粋）
+
+### 建物名取得（認証なし）
+```bash
+python get_building_name.py 3760
+```
+Python から:
+```python
+from get_building_name import get_building_name
+name = get_building_name("3760")
+print(name)
+```
+
+### 建物名取得（認証あり）
+```bash
+python get_building_name_password.py 103 password123 3760
+```
+Python から:
+```python
+from get_building_name_password import get_building_name
+res = get_building_name("103", "password123", "3760")
+print(res)
+# {"result":"ok","mansion_name":"..."} or {"error":"..."}
+```
+
+### API（FastAPI）
+- サーバー起動: `uvicorn app.main:app --reload`
+- 仕様・エンドポイント: `app/server.md` を参照
+- 本番ベースURL: `https://call-api.489501.jp/nespe_db_reservation`
+
 ## セットアップ
 
 ### 必要なライブラリのインストール
 
 #### 1. 最小限のインストール（推奨）
 ```bash
-# ishokuフォルダーに移動
-cd ishoku
-
-# 最小限のライブラリをインストール
 pip install -r requirements-minimal.txt
 ```
 
 #### 2. 完全版のインストール（開発用）
 ```bash
-# すべてのライブラリをインストール
 pip install -r requirements.txt
 ```
 
 #### 3. 仮想環境でのインストール（推奨）
 ```bash
-# 仮想環境を作成
 python -m venv ishoku_env
-
-# 仮想環境をアクティベート
-# Linux/Mac
-source ishoku_env/bin/activate
-# Windows
-ishoku_env\Scripts\activate
-
-# ライブラリをインストール
+source ishoku_env/bin/activate  # Mac/Linux
+# Windows: ishoku_env\Scripts\activate
 pip install -r requirements-minimal.txt
 ```
 

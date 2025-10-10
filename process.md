@@ -482,6 +482,35 @@ WHERE UserCD = %s AND ClientCD = %s AND MukouFlg = 0
 
 ---
 
+## 4. 建物名取得機能（get_building_name.py / get_building_name_password.py）
+
+### 主要機能
+- `ClientCD`（= 物件ID）に紐づく `MansionName`（建物名）の取得
+- 認証なし/認証ありの2系統を提供
+
+### 処理フロー
+
+#### 4.1 認証なし版（get_building_name.py）
+```
+1. @db_connection により接続を確立
+2. tClientM から ClientCD 一致の MansionName を取得
+3. 見つかった場合は文字列、未登録の場合は None を返す
+```
+
+#### 4.2 認証あり版（get_building_name_password.py）
+```
+1. authenticate_user() により認証
+2. 認証成功時に tClientM から MansionName を取得
+3. {"result":"ok","mansion_name": <名称 or null>} を返す
+4. 認証失敗時は {"error":"..."} を返す
+```
+
+### API（FastAPI）
+- 公開: `GET /api/v1/public/building/name?client_cd=<ClientCD>`
+- 認証: `GET /api/v1/auth/building/name?room_number=<UserCD>&password=<Passwd>&building_id=<ClientCD>`
+
+---
+
 ## 共通処理
 
 ### 認証フロー（認証あり版のみ）

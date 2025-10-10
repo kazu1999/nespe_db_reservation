@@ -336,6 +336,27 @@ curl -X POST http://localhost:8000/api/v1/public/second-choice/update \
 - 認証版（`/api/v1/auth/reservation/...`）
   - 各エンドポイントは Query に `password` を含む以外は公開版と同様
 
+#### 建物名（building）
+
+- 公開: GET `/api/v1/public/building/name`
+  - Query Params: `client_cd` (str)
+  - Success Response
+    ```json
+    { "result": "ok", "mansion_name": "○○マンション" }
+    ```
+    - 未登録の場合: `{ "result": "ok", "mansion_name": null }`
+
+- 認証: GET `/api/v1/auth/building/name`
+  - Query Params: `room_number` (str), `password` (str), `building_id` (str)
+  - Success Response
+    ```json
+    { "result": "ok", "mansion_name": "○○マンション" }
+    ```
+  - 失敗例
+    ```json
+    { "error": "認証に失敗しました。部屋番号・パスワード・物件管理番号をご確認ください。" }
+    ```
+
 ### 本番公開URLと動作確認
 
 - ベースURL: `https://call-api.489501.jp/nespe_db_reservation`
@@ -359,4 +380,12 @@ curl -X POST http://localhost:8000/api/v1/public/second-choice/update \
 - 例: 第一希望の空き枠取得
   ```bash
   curl "https://call-api.489501.jp/nespe_db_reservation/api/v1/public/first-choice/slots?building_id=3760&date=2025-06-12"
+  ```
+- 例: 建物名の公開取得
+  ```bash
+  curl "https://call-api.489501.jp/nespe_db_reservation/api/v1/public/building/name?client_cd=3760"
+  ```
+- 例: 建物名の認証取得
+  ```bash
+  curl "https://call-api.489501.jp/nespe_db_reservation/api/v1/auth/building/name?room_number=103&password=PASSWORD&building_id=3760"
   ```
